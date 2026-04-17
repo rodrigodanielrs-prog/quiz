@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz — Métodos de Condução de Autógamas</title>
+<style>
+:root{
+  --verde:#2C5F2D;--verde-m:#4A8B3F;--verde-c:#97BC62;
+  --azul:#185FA5;--azul-l:#E6F1FB;--azul-d:#0C447C;
+  --verm:#A32D2D;--verm-l:#FCEBEB;
+  --amar:#854F0B;--amar-l:#FAEEDA;
+  --cinza:#5F5E5A;--cinza-l:#F1EFE8;--cinza-ll:#FAFAF8;
+  --borda:#e0ddd6;--txt:#1a1a18;--txt2:#5F5E5A;
+  --r:10px;--rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f3ee;color:var(--txt);min-height:100vh}
+nav{background:var(--verde);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-title{color:#fff;font-size:15px;font-weight:600}
+.nav-sub{color:var(--verde-c);font-size:11px}
+.mode-btns{display:flex;gap:6px}
+.mbtn{padding:5px 12px;border-radius:var(--rs);border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:12px;font-weight:500;cursor:pointer}
+.mbtn:hover{background:rgba(255,255,255,.15)}
+.mbtn.active{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.7)}
+.wrap{max-width:680px;margin:0 auto;padding:24px 16px 40px}
+.screen{display:none}.screen.active{display:block}
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--borda);padding:22px;margin-bottom:14px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;padding:10px 20px;border-radius:var(--r);font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+
+/* SYNC STATUS */
+.sync-bar{display:flex;align-items:center;gap:6px;font-size:11px;padding:5px 10px;border-radius:var(--rs);margin-bottom:12px}
+.sync-bar.online{background:#EAF3DE;color:#27500A}
+.sync-bar.offline{background:var(--amar-l);color:var(--amar)}
+.sync-bar.syncing{background:var(--azul-l);color:var(--azul-d)}
+.sync-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sync-bar.online .sync-dot{background:#639922}
+.sync-bar.offline .sync-dot{background:#BA7517}
+.sync-bar.syncing .sync-dot{background:var(--azul);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* START */
+.sh{text-align:center;padding:6px 0 22px}
+.si{font-size:44px;margin-bottom:10px}
+.st{font-size:22px;font-weight:700;color:var(--verde);margin-bottom:5px}
+.ss{font-size:13px;color:var(--txt2);line-height:1.6}
+.chips{display:flex;gap:7px;justify-content:center;margin:14px 0 0;flex-wrap:wrap}
+.chip{padding:5px 13px;border-radius:20px;background:var(--cinza-l);font-size:12px;font-weight:500;color:var(--cinza)}
+.chip.g{background:#EAF3DE;color:#27500A}
+.chip.b{background:var(--azul-l);color:var(--azul-d)}
+.lbl{font-size:13px;font-weight:500;color:var(--txt2);margin-bottom:5px;display:block}
+.inp{width:100%;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--borda);font-size:15px;color:var(--txt);background:#fff;outline:none;margin-bottom:11px}
+.inp:focus{border-color:var(--verde)}
+.btn-p{width:100%;padding:12px;border-radius:var(--r);border:none;background:var(--verde);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+.btn-p:hover:not(:disabled){background:var(--verde-m)}
+.btn-p:disabled{background:#ccc;cursor:default}
+.btn-s{width:100%;padding:11px;border-radius:var(--r);border:1.5px solid var(--borda);background:#fff;color:var(--txt);font-size:14px;font-weight:500;cursor:pointer;margin-top:8px}
+.btn-s:hover{background:var(--cinza-ll)}
+.snote{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2);background:var(--cinza-l);padding:8px 12px;border-radius:var(--rs);margin-bottom:14px}
+
+/* PROGRESS */
+.prog-track{height:5px;background:var(--cinza-l);border-radius:3px;overflow:hidden;margin-bottom:5px}
+.prog-fill{height:5px;border-radius:3px;background:var(--verde-c);transition:width .4s}
+.prog-dots{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.dq{width:10px;height:10px;border-radius:50%;background:var(--cinza-l);flex-shrink:0}
+.dq.ok{background:#639922}.dq.err{background:#E24B4A}.dq.skip{background:#BA7517}.dq.cur{background:var(--azul)}
+
+/* QUIZ */
+.qhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.qinfo{font-size:13px;color:var(--txt2)}
+.qcat{font-size:11px;font-weight:600;padding:3px 9px;border-radius:12px;background:#EAF3DE;color:#27500A;display:inline-block;margin-bottom:10px}
+.sbadge{font-size:13px;font-weight:600;background:var(--verde);color:#fff;padding:4px 13px;border-radius:20px}
+.tbg{height:7px;background:var(--cinza-l);border-radius:4px;overflow:hidden;margin-bottom:5px}
+.tfill{height:7px;border-radius:4px;background:var(--azul);transition:width 1s linear,background .3s}
+.tfill.warn{background:#BA7517}.tfill.danger{background:#E24B4A}
+.trow{display:flex;justify-content:space-between;margin-bottom:14px}
+.tnum{font-size:13px;font-weight:600;color:var(--txt2)}
+.tname{font-size:12px;color:var(--txt2)}
+.qtxt{font-size:16px;font-weight:600;line-height:1.55;margin-bottom:18px;color:var(--txt)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.opt{padding:13px 13px;border-radius:var(--r);border:1.5px solid var(--borda);background:#fff;font-size:13px;font-weight:500;cursor:pointer;text-align:left;color:var(--txt);line-height:1.35;display:flex;align-items:flex-start;gap:8px;transition:background .12s,border .12s}
+.opt:hover:not(:disabled){background:var(--cinza-ll);border-color:#c0bdb6}
+.opt.correct{background:#EAF3DE;border-color:#3B6D11;color:#27500A}
+.opt.wrong{background:var(--verm-l);border-color:var(--verm);color:var(--verm)}
+.opt.dimmed{opacity:.35}.opt:disabled{cursor:default}
+.ol{min-width:22px;height:22px;border-radius:4px;background:var(--cinza-l);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.opt.correct .ol{background:#C0DD97;color:#27500A}
+.opt.wrong .ol{background:#F7C1C1;color:var(--verm)}
+.fb{border-radius:var(--r);padding:13px 15px;margin-bottom:13px;font-size:13px;line-height:1.6;display:none}
+.fb.correct{background:#EAF3DE;border:1px solid #3B6D11;color:#1a3a0a}
+.fb.wrong{background:var(--verm-l);border:1px solid var(--verm);color:#4a0f0f}
+.fb.timeout{background:var(--amar-l);border:1px solid #BA7517;color:#3a2000}
+.fbt{font-weight:700;margin-bottom:5px;font-size:14px}
+
+/* TABS */
+.tabs{display:flex;border-bottom:2px solid var(--borda);margin-bottom:14px}
+.tab{padding:9px 16px;font-size:13px;font-weight:500;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.active{color:var(--verde);border-bottom-color:var(--verde)}
+.tpanel{display:none}.tpanel.active{display:block}
+
+/* RESULT */
+.rbanner{background:var(--verde);border-radius:var(--r);padding:22px;text-align:center;margin-bottom:14px;color:#fff}
+.rav{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;margin:0 auto 9px}
+.rname{font-size:19px;font-weight:700;margin-bottom:2px}
+.rsch{font-size:11px;color:var(--verde-c)}
+.rmed{font-size:34px;margin:10px 0 3px}
+.rpts{font-size:46px;font-weight:800;letter-spacing:-1px}
+.rptsl{font-size:12px;color:var(--verde-c);margin-bottom:3px}
+.rmsg{font-size:13px;color:rgba(255,255,255,.85);line-height:1.5;margin-top:7px}
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.sc{background:#fff;border:1px solid var(--borda);border-radius:var(--rs);padding:11px 7px;text-align:center}
+.sn{font-size:22px;font-weight:700;color:var(--verde)}
+.sl{font-size:11px;color:var(--txt2);margin-top:2px}
+.stit{font-size:12px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:9px}
+.drow{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--borda);font-size:13px}
+.drow .dl{color:var(--txt2)}.drow .dv{font-weight:600;color:var(--txt)}
+.sync-result{display:flex;align-items:center;gap:7px;font-size:12px;padding:8px 12px;border-radius:var(--rs);margin-bottom:12px}
+.sync-result.ok{background:#EAF3DE;color:#27500A}
+.sync-result.fail{background:var(--amar-l);color:var(--amar)}
+
+/* REVIEW */
+.ritem{border:1px solid var(--borda);border-radius:var(--r);padding:14px;margin-bottom:11px}
+.rq{font-size:13px;font-weight:600;margin-bottom:9px;color:var(--txt);line-height:1.45}
+.rcat-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:#EAF3DE;color:#27500A;display:inline-block;margin-bottom:7px}
+.ro{padding:7px 10px;border-radius:var(--rs);font-size:12px;margin-bottom:5px;display:flex;align-items:flex-start;gap:7px;line-height:1.35}
+.ro.c-opt{background:#EAF3DE;color:#27500A;border:1px solid #3B6D11}
+.ro.w-opt{background:var(--verm-l);color:var(--verm);border:1px solid #f09595}
+.ro.n-opt{color:var(--txt2)}
+.rtag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:auto;flex-shrink:0}
+.tc{background:#C0DD97;color:#27500A}.tw{background:#F7C1C1;color:var(--verm)}.tt{background:#FAC775;color:#633806}
+.rexp{font-size:12px;color:var(--txt2);background:var(--cinza-l);padding:9px 11px;border-radius:var(--rs);margin-top:7px;line-height:1.55}
+
+/* PROJETOR */
+.proj-wrap{padding:.5rem 0 2rem}
+.rkhdr{background:var(--verde);color:#fff;border-radius:var(--r) var(--r) 0 0;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.rktit{font-size:17px;font-weight:700}
+.rklive{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--verde-c)}
+.ldot{width:7px;height:7px;border-radius:50%;background:#97BC62;animation:pulse 1.2s infinite}
+.rklist{border:1px solid var(--borda);border-top:none;border-radius:0 0 var(--r) var(--r);overflow:hidden;margin-bottom:14px;min-height:80px}
+.rkrow{display:flex;align-items:center;padding:12px 16px;border-top:1px solid var(--borda);background:#fff;animation:fadeIn .4s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.rkrow:first-child{border-top:none}
+.rkrow.gold{background:#FFFBF0}.rkrow.silver{background:#F8F8F8}.rkrow.bronze{background:#FFF8F4}
+.rkpos{width:28px;font-size:14px;font-weight:800;color:var(--txt2);flex-shrink:0}
+.rkpos.p1{color:#B8860B}.rkpos.p2{color:#888}.rkpos.p3{color:#A0522D}
+.rkav{width:36px;height:36px;border-radius:50%;background:var(--azul-l);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--azul-d);flex-shrink:0;margin-right:10px}
+.rkname{flex:1;font-size:14px;font-weight:500}
+.rkdet{font-size:11px;color:var(--txt2);margin-top:1px}
+.rkbar-w{width:90px;height:5px;background:var(--cinza-l);border-radius:3px;margin-right:12px;overflow:hidden}
+.rkbar{height:5px;background:var(--verde-c);border-radius:3px;transition:width .6s}
+.rksc{font-size:16px;font-weight:800;color:var(--verde);min-width:52px;text-align:right}
+.rkempty{padding:32px;text-align:center;color:var(--txt2);font-size:13px}
+.proj-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.proj-stat{background:#fff;border:1px solid var(--borda);border-radius:var(--rs);padding:12px;text-align:center}
+.proj-stat-n{font-size:22px;font-weight:700;color:var(--verde)}
+.proj-stat-l{font-size:11px;color:var(--txt2);margin-top:2px}
+.projnote{font-size:12px;color:var(--txt2);text-align:center;margin-bottom:14px;line-height:1.6}
+.btn-d{width:100%;padding:10px;border-radius:var(--r);border:1.5px solid #f09595;background:#fff;color:var(--verm);font-size:13px;font-weight:500;cursor:pointer;margin-top:8px}
+.btn-d:hover{background:var(--verm-l)}
+.export-btn{width:100%;padding:11px;border-radius:var(--r);border:1.5px solid #3B6D11;background:#EAF3DE;color:#27500A;font-size:13px;font-weight:500;cursor:pointer;margin-top:0}
+.export-btn:hover{background:#C0DD97}
+
+/* CONFIG WARNING */
+.cfg-warn{background:#FAEEDA;border:1px solid #BA7517;border-radius:var(--r);padding:16px;margin-bottom:16px}
+.cfg-warn-title{font-size:14px;font-weight:600;color:#633806;margin-bottom:6px}
+.cfg-warn-body{font-size:13px;color:#633806;line-height:1.6}
+.cfg-code{font-family:monospace;background:rgba(0,0,0,.08);padding:2px 6px;border-radius:4px;font-size:12px}
+
+@media(max-width:480px){.opts{grid-template-columns:1fr}.mode-btns{gap:4px}.mbtn{padding:4px 8px;font-size:11px}.proj-stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ FIREBASE CONFIG ══════════════════
+  SUBSTITUA os valores abaixo pelos do seu projeto Firebase.
+  Você os encontra em: Console Firebase > Seu Projeto > Configurações > Geral > Seus apps
+═══════════════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDCYkXhd_wgN6tTgkWCcNRAxJXk",
+    authDomain:        "quiz-autogamas-setrem-35747.firebaseapp.com",
+    databaseURL:       "https://quiz-autogamas-setrem-35747-default-rtdb.firebaseio.com",
+    projectId:         "quiz-autogamas-setrem-35747",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  /* ─── API exposta para o quiz ─── */
+  window.FB = {
+    salvar: async (nome, dados) => {
+      const key = nome.replace(/[.#$[\]]/g,'_');
+      await set(ref(db, 'resultados/' + key), { ...dados, ts: Date.now() });
+    },
+    escutar: (cb) => {
+      onValue(ref(db, 'resultados'), snap => {
+        const val = snap.val() || {};
+        cb(Object.values(val));
+      });
+    },
+    exportar: async () => {
+      const snap = await get(ref(db, 'resultados'));
+      return Object.values(snap.val() || {});
+    },
+    limpar: async () => {
+      await remove(ref(db, 'resultados'));
+    },
+    ok: true
+  };
+
+  /* Verifica conectividade */
+  onValue(ref(db, '.info/connected'), snap => {
+    window._fbConnected = snap.val() === true;
+    document.querySelectorAll('.sync-bar').forEach(el => {
+      el.className = 'sync-bar ' + (window._fbConnected ? 'online' : 'offline');
+      el.querySelector('.sync-label').textContent = window._fbConnected
+        ? 'Conectado ao Firebase — resultados sincronizados'
+        : 'Sem conexão — resultados salvos localmente';
+    });
+  });
+</script>
+
+<nav>
+  <div>
+    <div class="nav-title">Quiz — Métodos de Condução</div>
+    <div class="nav-sub">Melhoramento de Plantas · SETREM</div>
+  </div>
+  <div class="mode-btns">
+    <button class="mbtn active" onclick="setMode('aluno')">Aluno</button>
+    <button class="mbtn" onclick="setMode('projetor')">Projetor</button>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- ════════ MODO ALUNO ════════ -->
+<div id="modeAluno" class="wrap">
+
+  <div id="start" class="screen active">
+    <div class="card">
+      <div class="sh">
+        <div class="si">🌱</div>
+        <div class="st">Quiz — Autógamas</div>
+        <div class="ss">Prof. Dr. Rodrigo Danielowski · Agronomia SETREM<br>Todos os métodos abordados em aula</div>
+        <div class="chips">
+          <span class="chip">20 questões</span>
+          <span class="chip">20s por questão</span>
+          <span class="chip g">+pts mais rápido</span>
+          <span class="chip b">Resultados ao vivo</span>
+        </div>
+      </div>
+      <div class="sync-bar online" id="syncStart">
+        <div class="sync-dot"></div>
+        <span class="sync-label">Verificando conexão...</span>
+      </div>
+      <div class="snote">🔀 Questões e alternativas embaralhadas a cada rodada</div>
+      <label class="lbl" for="ni">Seu nome completo</label>
+      <input class="inp" id="ni" type="text" placeholder="Ex: João da Silva"
+        autocomplete="off" oninput="tb()" onkeydown="if(event.key==='Enter')ts()">
+      <button class="btn-p" id="sb" onclick="ts()" disabled>Começar quiz</button>
+    </div>
+  </div>
+
+  <div id="quiz" class="screen">
+    <div class="card">
+      <div class="qhdr">
+        <span class="qinfo" id="qc">Questão 1 de 20</span>
+        <span class="sbadge" id="sd">0 pts</span>
+      </div>
+      <span class="qcat" id="qcat"></span>
+      <div class="prog-track"><div class="prog-fill" id="pf"></div></div>
+      <div class="prog-dots" id="pd"></div>
+      <div class="tbg"><div class="tfill" id="tf"></div></div>
+      <div class="trow">
+        <span class="tnum" id="tn">20s</span>
+        <span class="tname" id="tpn"></span>
+      </div>
+      <div class="qtxt" id="qt"></div>
+      <div class="opts" id="op"></div>
+      <div class="fb" id="fb">
+        <div class="fbt" id="fbt"></div>
+        <div id="fbe"></div>
+      </div>
+      <button class="btn-p" id="nb" style="display:none" onclick="nq()">Próxima questão →</button>
+    </div>
+  </div>
+
+  <div id="result" class="screen">
+    <div id="syncResult" class="sync-result ok" style="display:none">
+      <span>✓</span><span id="syncMsg">Resultado enviado com sucesso!</span>
+    </div>
+    <div class="rbanner">
+      <div class="rav" id="av"></div>
+      <div class="rname" id="pn"></div>
+      <div class="rsch">Melhoramento de Plantas · SETREM</div>
+      <div class="rmed" id="md"></div>
+      <div class="rpts" id="fs"></div>
+      <div class="rptsl">pontos</div>
+      <div class="rmsg" id="rm"></div>
+    </div>
+    <div class="sgrid">
+      <div class="sc"><div class="sn" id="sa">0</div><div class="sl">acertos</div></div>
+      <div class="sc"><div class="sn" id="se">0</div><div class="sl">erros+timeout</div></div>
+      <div class="sc"><div class="sn" id="sp">0%</div><div class="sl">aproveitamento</div></div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="sw('tRes',this)">Resumo</div>
+      <div class="tab" onclick="sw('tRev',this)">Revisão detalhada</div>
+    </div>
+    <div class="tpanel active" id="tRes">
+      <div class="card" style="padding:15px">
+        <div class="stit">Resultado</div>
+        <div id="rr"></div>
+      </div>
+      <button class="btn-p" style="margin-bottom:8px" onclick="dlCSV()">⬇ Baixar resultado (CSV)</button>
+      <button class="btn-s" onclick="rs1()">Jogar novamente (mesmo nome)</button>
+      <button class="btn-s" onclick="rs2()">Jogar com outro nome</button>
+    </div>
+    <div class="tpanel" id="tRev">
+      <div id="rl"></div>
+      <button class="btn-s" onclick="rs1()">Jogar novamente (mesmo nome)</button>
+      <button class="btn-s" onclick="rs2()">Jogar com outro nome</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════ MODO PROJETOR ════════ -->
+<div id="modeProjetor" class="wrap" style="display:none">
+  <div class="proj-wrap">
+    <div class="sync-bar online" id="syncProj">
+      <div class="sync-dot"></div>
+      <span class="sync-label">Conectado ao Firebase</span>
+    </div>
+    <div class="proj-stats">
+      <div class="proj-stat"><div class="proj-stat-n" id="psTot">0</div><div class="proj-stat-l">alunos</div></div>
+      <div class="proj-stat"><div class="proj-stat-n" id="psAvg">—</div><div class="proj-stat-l">média de acertos</div></div>
+      <div class="proj-stat"><div class="proj-stat-n" id="psTop">—</div><div class="proj-stat-l">maior pontuação</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="rkhdr">
+        <div class="rktit">🏆 Placar ao vivo</div>
+        <div class="rklive"><span class="ldot"></span>Firebase · tempo real</div>
+      </div>
+      <div class="rklist" id="rkl">
+        <div class="rkempty">Aguardando alunos...<br><span style="font-size:11px">Os resultados aparecerão aqui em tempo real.</span></div>
+      </div>
+    </div>
+    <p class="projnote">Atualização em tempo real via Firebase.<br>Funciona mesmo que os alunos estejam em celulares diferentes.</p>
+    <button class="export-btn" onclick="exportarCSV()">⬇ Exportar resultados da turma (CSV)</button>
+    <button class="btn-d" onclick="limparTurma()">Limpar placar (nova turma)</button>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   BANCO DE QUESTÕES — 20 questões completas
+══════════════════════════════════════════ */
+const QS=[
+  {cat:"Introdução de plantas",q:"Qual é considerado o método mais simples e rápido de melhoramento de plantas autógamas?",opts:["Método genealógico (Pedigree)","Introdução de plantas","Método SSD","Retrocruzamento"],ans:1,exp:"A introdução de plantas consiste em trazer linhagens de outros países ou estados. É o método mais simples e rápido pois não requer hibridação — a linhagem já está desenvolvida e precisa apenas ser testada nas condições locais."},
+  {cat:"Introdução de plantas",q:"Qual afirmação sobre a Introdução de Plantas está INCORRETA?",opts:["Pode ser usada diretamente em uma região sem modificações","Serve como fonte de variabilidade para hibridações","Cria nova variabilidade genética por meio de cruzamentos","É útil para introduzir genes de resistência a doenças"],ans:2,exp:"A introdução de plantas NÃO cria nova variabilidade — ela apenas transfere germoplasma já existente para uma nova região. A criação de variabilidade é função da hibridação, mutação e outros processos evolutivos."},
+  {cat:"Seleção massal",q:"Na Seleção Massal, a escolha das plantas para a próxima geração é baseada em:",opts:["Avaliação do genótipo via marcadores moleculares","Teste de progênie das plantas selecionadas","Fenótipo das plantas na geração segregante","Retrocruzamento com o genitor recorrente"],ans:2,exp:"A Seleção Massal é baseada exclusivamente no fenótipo. As melhores plantas são selecionadas visualmente e suas sementes misturadas para compor a próxima geração — sem verificar se a superioridade é de origem genética ou ambiental."},
+  {cat:"Seleção massal",q:"Qual é a principal DESVANTAGEM da Seleção Massal?",opts:["Alto custo e demanda de pessoal treinado","Aplicável somente a espécies alógamas","Seleção com base no fenótipo, sem distinguir efeito genético do ambiental","Impossibilidade de conduzir mais de uma geração por ano"],ans:2,exp:"Como a seleção é feita pelo fenótipo (P = G + E), não é possível saber se a planta selecionada é superior geneticamente ou apenas favorecida pelo ambiente. Isso reduz a eficiência, especialmente para caracteres de baixa herdabilidade."},
+  {cat:"Linhas puras",q:"O conceito de Linha Pura (Johannsen, 1903) define que toda descendência resultante da autofecundação de uma única planta homozigota é:",opts:["Geneticamente heterogênea e fenotipicamente uniforme","Geneticamente idêntica entre si (homozigota)","Heterozigota em todos os locos","Suscetível à depressão por endogamia"],ans:1,exp:"Uma linha pura é geneticamente uniforme — toda a descendência de uma única planta homozigota autofecundada possui o mesmo genótipo. Johannsen demonstrou que a seleção dentro de uma linha pura não produz progresso genético."},
+  {cat:"Linhas puras",q:"A Seleção de Linhas Puras (com teste de progênie) é mais eficiente que a seleção sem teste de progênie para:",opts:["Caracteres de alta herdabilidade","Caracteres de baixa herdabilidade","Redução de custos operacionais","Espécies que não toleram endogamia"],ans:1,exp:"O teste de progênie avalia a descendência de cada planta selecionada em parcelas individuais, permitindo separar o efeito genético do ambiental. Isso aumenta a eficiência especialmente para caracteres de baixa herdabilidade, onde o fenótipo individual é pouco informativo."},
+  {cat:"Método Bulk",q:"No Método Bulk (Populacional), a seleção artificial individual inicia-se em qual geração?",opts:["F2 — quando a variabilidade é máxima","F3 — após a primeira autofecundação","F5 — quando a homozigose já é elevada","F1 — logo após a hibridação"],ans:2,exp:"No método Bulk, não há seleção artificial de F1 a F4. A população é conduzida em bulk (colheita coletiva) deixando a seleção natural agir. A seleção artificial individual começa em F5, quando as plantas já apresentam homozigose suficiente (~94%)."},
+  {cat:"Método Bulk",q:"A seleção natural no Método Bulk SEMPRE favorece os genótipos mais desejáveis agronomicamente?",opts:["Sim — a natureza sempre seleciona os mais adaptados","Não — ela favorece os mais competitivos, que podem ser plantas altas e tardias","Sim — especialmente em ambientes de estresse","Não — ela elimina todos os genótipos homozigotos"],ans:1,exp:"A seleção natural não é aliada incondicional do melhorista. Em cereais, ela favorece plantas altas e tardias (maior captação de recursos), que podem ser justamente os genótipos indesejáveis. Esta é a principal limitação do método Bulk."},
+  {cat:"Método Genealógico",q:"No Método Genealógico (Pedigree), em qual geração o melhorista realiza a primeira seleção individual de plantas?",opts:["F1 — logo após o cruzamento","F2 — fase de máxima variabilidade","F4 — quando a homozigose é ~87%","F6 — quando as linhagens estão prontas"],ans:1,exp:"Em F2 ocorre a primeira seleção individual no método Pedigree. Com ~50% de heterozigose e variabilidade máxima, o melhorista seleciona as melhores plantas (intensidade de ~5%), com ênfase em caracteres qualitativos, iniciando o registro genealógico."},
+  {cat:"Método Genealógico",q:"Qual vantagem do Método Genealógico o diferencia fundamentalmente do Método Bulk?",opts:["Menor custo operacional","Permite conduzir mais de uma geração por ano","Permite descartar genótipos inferiores precocemente, acumulando dados ao longo das gerações","Não requer área experimental"],ans:2,exp:"A grande vantagem do Pedigree é o descarte de linhagens inferiores em gerações precoces (F2/F3), economizando recursos. Os dados acumulados de cada linha permitem decisões de seleção baseadas em histórico multi-ambiente — impossível no Bulk."},
+  {cat:"Método SSD",q:"O princípio fundamental do Método SSD (Single Seed Descent) é:",opts:["Selecionar as melhores plantas a cada geração","Avançar gerações colhendo apenas 1 semente por planta, sem seleção artificial ou natural","Realizar retrocruzamentos com o genitor recorrente","Colher toda a população em bulk e ressemear"],ans:1,exp:"O SSD preconiza avançar gerações sem nenhuma seleção — cada planta contribui com exatamente 1 semente para a próxima geração. Isso garante que a variabilidade genética da F2 seja mantida integralmente até a F6."},
+  {cat:"Método SSD",q:"No SSD, a variabilidade genética em F6 comparada à F2 é:",opts:["Muito menor — a autofecundação reduz drasticamente a variabilidade","Igual — pois nenhum genótipo é eliminado por seleção","Maior — pois ocorrem recombinações intermediárias","Menor — pois a seleção natural elimina genótipos competitivos"],ans:1,exp:"Como nenhum genótipo é eliminado por seleção (natural ou artificial), a variabilidade genética original da F2 é totalmente preservada até F6 no SSD. Só o SSD garante variabilidade F2 = F6, diferentemente do Bulk e do Pedigree."},
+  {cat:"Seleção precoce",q:"A Seleção Precoce (ou Teste de Geração Precoce) tem como objetivo principal:",opts:["Aumentar o número de ciclos por ano","Descartar genótipos indesejáveis em gerações precoces, concentrando recursos nos mais promissores","Realizar retrocruzamentos entre as melhores linhagens","Manter a variabilidade genética sem seleção"],ans:1,exp:"A Seleção Precoce busca identificar e eliminar genótipos inferiores ainda nas primeiras gerações segregantes (F2/F3), antes de investir recursos em ensaios de rendimento. Isso concentra os esforços nas linhagens com maior potencial."},
+  {cat:"Seleção precoce",q:"A Seleção Precoce é MENOS eficiente quando aplicada a:",opts:["Caracteres de alta herdabilidade como ciclo e estatura","Caracteres de baixa herdabilidade como produtividade de grãos","Espécies de ciclo curto com múltiplos cultivos por ano","Populações com grande variabilidade genética"],ans:1,exp:"Para caracteres de baixa herdabilidade (como produtividade), a expressão fenotípica nas gerações precoces é fortemente influenciada pelo ambiente, tornando difícil distinguir genótipos superiores de inferiores. A seleção precoce nesses casos tem eficiência limitada."},
+  {cat:"Retrocruzamento",q:"No Método do Retrocruzamento, qual é o papel do 'Genitor Recorrente'?",opts:["Fornecer o gene de interesse ao programa","Ser a cultivar elite que receberá o gene do genitor doador","Servir como hospedeiro temporário","Ser descartado após o primeiro retrocruzamento"],ans:1,exp:"O Genitor Recorrente é a cultivar elite — aquela com todas as características desejáveis, exceto um caráter específico. O objetivo do retrocruzamento é recuperar o genoma do recorrente (~97% após 5 RCs) incorporando apenas o gene de interesse do Genitor Doador."},
+  {cat:"Retrocruzamento",q:"Após 5 retrocruzamentos consecutivos com o genitor recorrente, qual é a proporção aproximada do genoma recorrente recuperada?",opts:["50%","75%","87%","97%"],ans:3,exp:"A proporção do genitor recorrente recuperada após m retrocruzamentos é: 1 − (1/2)^(m+1). Após 5 RCs: 1 − (1/2)^6 ≈ 97%. A cada RC a contribuição do doador é reduzida à metade, recuperando progressivamente o genoma da cultivar elite."},
+  {cat:"Retrocruzamento",q:"A transferência de um alelo RECESSIVO pelo retrocruzamento é mais trabalhosa porque:",opts:["O alelo recessivo muta com maior frequência","É necessário autofecundar a cada RC ímpar para identificar os portadores","O alelo recessivo só se expressa em estresse","Não é detectável por marcadores moleculares"],ans:1,exp:"Como o alelo recessivo (aa) não se expressa no heterozigoto (Aa), não é possível identificar os portadores pelo fenótipo. É necessário autofecundar as plantas a cada retrocruzamento ímpar para confirmar a presença do alelo — adicionando uma geração extra a cada ciclo."},
+  {cat:"Seleção recorrente",q:"O que diferencia fundamentalmente a Seleção Recorrente dos demais métodos de condução?",opts:["Ausência de seleção artificial nas gerações iniciais","Intercruzamento entre os melhores genótipos selecionados a cada ciclo, ampliando a variabilidade","Condução de apenas uma geração por ano","Uso exclusivo em espécies autógamas"],ans:1,exp:"O elemento central da Seleção Recorrente é o intercruzamento (recombinação) entre os melhores genótipos após cada ciclo de seleção. Isso amplia a variabilidade genética e aumenta a frequência de alelos favoráveis continuamente — diferente dos demais métodos que conduzem populações para a homozigose."},
+  {cat:"Seleção recorrente",q:"Por que a Seleção Recorrente raramente resulta no lançamento direto de cultivares em espécies autógamas?",opts:["Porque é exclusiva para alógamas","Porque o elevado número de cruzamentos é de difícil execução em autógamas","Porque não aumenta a frequência de alelos favoráveis","Porque exige marcadores moleculares indisponíveis"],ans:1,exp:"O intercruzamento sistemático é simples em alógamas (polinização aberta) mas extremamente trabalhoso em autógamas, que naturalmente se autofecundam. Isso torna a execução prática difícil e onerosa, razão pela qual raramente gera cultivares diretamente em soja, trigo e feijão."},
+  {cat:"VCU e DHE",q:"Qual é a diferença fundamental entre VCU e DHE no processo de registro e proteção de cultivares no Brasil?",opts:["VCU avalia só produtividade; DHE avalia qualidade industrial","VCU é obrigatório para comercialização (RNC); DHE é exigido apenas para proteção intelectual","VCU é exigido pelo INPI; DHE é exigido pelo MAPA","Ambos são opcionais — o obtentor escolhe quais realizar"],ans:1,exp:"O VCU (Valor de Cultivo e Uso) é obrigatório para inscrição no RNC — sem ele a cultivar não pode ser comercializada. O DHE (Distinguibilidade, Homogeneidade e Estabilidade) é exigido apenas quando o obtentor deseja proteger intelectualmente a cultivar no SNPC/MAPA."},
+];
+
+/* ══════════════════ ESTADO ══════════════════ */
+const TIMER=20;
+let cur=0,score=0,tl=0,ti=null,answered=false,hist=[],pname='',round=0,deck=[],stime=0,ttot=0;
+
+/* ══════════════════ UTILS ══════════════════ */
+function shuf(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function shufQ(q){const idx=shuf([0,1,2,3]);return{...q,opts:idx.map(i=>q.opts[i]),ans:idx.indexOf(q.ans)};}
+function buildDeck(){return shuf(QS).map(shufQ);}
+function inits(n){return n.split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();}
+function $i(id){return document.getElementById(id);}
+function show(id){document.querySelectorAll('#modeAluno .screen').forEach(s=>s.classList.remove('active'));$i(id).classList.add('active');}
+function toast(msg,dur=2500){const t=$i('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+
+/* ══════════════════ MODE ══════════════════ */
+function setMode(m){
+  $i('modeAluno').style.display=m==='aluno'?'block':'none';
+  $i('modeProjetor').style.display=m==='projetor'?'block':'none';
+  document.querySelectorAll('.mbtn').forEach((b,i)=>b.classList.toggle('active',(m==='aluno'&&i===0)||(m==='projetor'&&i===1)));
+  if(m==='projetor') startProjetor();
+}
+
+/* ══════════════════ START ══════════════════ */
+function tb(){$i('sb').disabled=$i('ni').value.trim().length<2;}
+function ts(){const v=$i('ni').value.trim();if(v.length<2)return;pname=v;startQ();}
+function startQ(){cur=0;score=0;hist=[];round++;ttot=0;deck=buildDeck();buildDots();$i('tpn').textContent=pname;show('quiz');loadQ();}
+
+/* ══════════════════ DOTS ══════════════════ */
+function buildDots(){
+  const el=$i('pd');el.innerHTML='';
+  deck.forEach((_,i)=>{const d=document.createElement('div');d.className='dq'+(i===0?' cur':'');d.id='dq'+i;el.appendChild(d);});
+}
+function updDots(idx,r){
+  const p=$i('dq'+idx);if(p)p.className='dq '+(r==='ok'?'ok':r==='err'?'err':'skip');
+  if(idx+1<deck.length){const n=$i('dq'+(idx+1));if(n)n.classList.add('cur');}
+  $i('pf').style.width=Math.round(((idx+1)/deck.length)*100)+'%';
+}
+
+/* ══════════════════ QUESTION ══════════════════ */
+function loadQ(){
+  answered=false;stime=Date.now();
+  const d=deck[cur];
+  $i('qc').textContent='Questão '+(cur+1)+' de '+deck.length;
+  $i('sd').textContent=score+' pts';
+  $i('qcat').textContent=d.cat;
+  $i('qt').textContent=d.q;
+  $i('fb').style.display='none';
+  $i('nb').style.display='none';
+  const L=['A','B','C','D'],el=$i('op');el.innerHTML='';
+  d.opts.forEach((o,i)=>{
+    const b=document.createElement('button');b.className='opt';
+    b.innerHTML='<span class="ol">'+L[i]+'</span>'+o;
+    b.onclick=()=>choose(i);el.appendChild(b);
+  });
+  startTimer();
+}
+function startTimer(){tl=TIMER;clearInterval(ti);updTimer();ti=setInterval(()=>{tl--;updTimer();if(tl<=0){clearInterval(ti);if(!answered)timeout();}},1000);}
+function updTimer(){
+  const p=Math.round((tl/TIMER)*100),f=$i('tf');
+  f.style.width=p+'%';f.className='tfill'+(tl<=5?' danger':tl<=10?' warn':'');
+  $i('tn').textContent=tl+'s';
+}
+
+/* ══════════════════ ANSWER ══════════════════ */
+function choose(idx){
+  if(answered)return;answered=true;clearInterval(ti);
+  const el=Math.round((Date.now()-stime)/1000);ttot+=el;
+  const d=deck[cur],ok=idx===d.ans,pts=ok?Math.max(100,100+tl*20):0;
+  score+=pts;
+  hist.push({cat:d.cat,q:d.q,opts:d.opts,chosen:idx,ans:d.ans,pts,el,exp:d.exp});
+  document.querySelectorAll('.opt').forEach((b,i)=>{b.disabled=true;if(i===d.ans)b.classList.add('correct');else if(i===idx&&!ok)b.classList.add('wrong');else b.classList.add('dimmed');});
+  updDots(cur,ok?'ok':'err');
+  showFB(ok?'correct':'wrong',pts,d.exp);
+}
+function timeout(){
+  answered=true;ttot+=TIMER;
+  const d=deck[cur];
+  hist.push({cat:d.cat,q:d.q,opts:d.opts,chosen:-1,ans:d.ans,pts:0,el:TIMER,exp:d.exp});
+  document.querySelectorAll('.opt').forEach((b,i)=>{b.disabled=true;if(i===d.ans)b.classList.add('correct');else b.classList.add('dimmed');});
+  updDots(cur,'skip');showFB('timeout',0,d.exp);
+}
+function showFB(type,pts,exp){
+  const fb=$i('fb');fb.className='fb '+type;fb.style.display='block';
+  $i('fbt').textContent={correct:'Correto! +'+pts+' pts',wrong:'Incorreto — 0 pts',timeout:'Tempo esgotado — 0 pts'}[type];
+  $i('fbe').textContent=exp;$i('sd').textContent=score+' pts';
+  const nb=$i('nb');nb.style.display='block';
+  nb.textContent=cur<deck.length-1?'Próxima questão →':'Ver resultado →';
+}
+function nq(){cur++;if(cur<deck.length)loadQ();else showResult();}
+
+/* ══════════════════ RESULT ══════════════════ */
+async function showResult(){
+  show('result');
+  $i('av').textContent=inits(pname);$i('pn').textContent=pname;$i('fs').textContent=score;
+  const ac=hist.filter(h=>h.pts>0).length;
+  const er=hist.filter(h=>h.chosen!==-1&&h.pts===0).length;
+  const to=hist.filter(h=>h.chosen===-1).length;
+  const pct=Math.round((ac/QS.length)*100);
+  const avg=Math.round(ttot/QS.length);
+  $i('sa').textContent=ac;$i('se').textContent=er+to;$i('sp').textContent=pct+'%';
+  $i('md').textContent=([[90,'🥇'],[70,'🥈'],[40,'🥉'],[0,'📚']].find(m=>pct>=m[0])||[0,'📚'])[1];
+  $i('rm').textContent=([[90,'Excelente! Domínio completo de todos os métodos de condução.'],[70,'Muito bom! Revise os pontos que errou.'],[40,'Bom esforço! Vale revisar os métodos com mais cuidado.'],[0,'Continue estudando! Revise todos os métodos e tente novamente.']].find(m=>pct>=m[0])||[0,''])[1];
+  const rr=$i('rr');rr.innerHTML='';
+  [['Acertos',ac+' / '+QS.length],['Erros',er],['Timeout',to],['Aproveitamento',pct+'%'],['Tempo médio/questão',avg+'s'],['Pontuação',score+' pts'],['Rodada',round]]
+    .forEach(([l,v])=>{rr.innerHTML+='<div class="drow"><span class="dl">'+l+'</span><span class="dv">'+v+'</span></div>';});
+  buildReview();sw('tRes',document.querySelector('.tab'));
+
+  /* Envia para Firebase */
+  const dados={nome:pname,score,acertos:ac,erros:er+to,aproveitamento:pct,tempoMedio:avg,rodada:round,data:new Date().toLocaleDateString('pt-BR')};
+  const sr=$i('syncResult'),sm=$i('syncMsg');
+  sr.style.display='flex';
+  if(window.FB?.ok){
+    try{
+      await window.FB.salvar(pname,dados);
+      sr.className='sync-result ok';sm.textContent='✓ Resultado enviado ao painel do professor!';
+    }catch(e){
+      sr.className='sync-result fail';sm.textContent='⚠ Sem conexão — baixe o CSV para entregar ao professor.';
+    }
+  }else{
+    sr.className='sync-result fail';sm.textContent='⚠ Firebase não configurado — baixe o CSV para entregar ao professor.';
+  }
+}
+
+/* ══════════════════ REVIEW ══════════════════ */
+function buildReview(){
+  const el=$i('rl');el.innerHTML='';const L=['A','B','C','D'];
+  hist.forEach((h,qi)=>{
+    const div=document.createElement('div');div.className='ritem';
+    let html='<span class="rcat-pill">'+h.cat+'</span><div class="rq">Q'+(qi+1)+'. '+h.q+'</div>';
+    h.opts.forEach((o,i)=>{
+      const isC=i===h.ans,isCh=i===h.chosen;
+      let cls='ro n-opt',tag='';
+      if(isC&&isCh){cls='ro c-opt';tag='<span class="rtag tc">Sua resposta ✓</span>';}
+      else if(isC){cls='ro c-opt';tag='<span class="rtag tc">Correta</span>';}
+      else if(isCh){cls='ro w-opt';tag='<span class="rtag tw">Sua resposta</span>';}
+      html+='<div class="'+cls+'"><span style="font-weight:700;margin-right:3px;flex-shrink:0">'+L[i]+'.</span>'+o+tag+'</div>';
+    });
+    if(h.chosen===-1)html+='<div class="ro" style="background:var(--amar-l);border:1px solid #BA7517;color:#633806"><span class="rtag tt" style="margin-left:0;margin-right:8px">Timeout</span>Sem resposta</div>';
+    html+='<div class="rexp">💡 '+h.exp+'</div>';
+    div.innerHTML=html;el.appendChild(div);
+  });
+}
+function sw(id,el){
+  document.querySelectorAll('.tpanel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  $i(id).classList.add('active');if(el)el.classList.add('active');
+}
+
+/* ══════════════════ CSV INDIVIDUAL ══════════════════ */
+function dlCSV(){
+  const ac=hist.filter(h=>h.pts>0).length;
+  const er=hist.filter(h=>h.chosen!==-1&&h.pts===0).length;
+  const to=hist.filter(h=>h.chosen===-1).length;
+  const pct=Math.round((ac/QS.length)*100);
+  const avg=Math.round(ttot/QS.length);
+  const rows=[['Nome','Pontuação','Acertos','Erros','Timeout','Aproveitamento(%)','TempoMédio(s)','Rodada','Data']];
+  rows.push([pname,score,ac,er,to,pct,avg,round,new Date().toLocaleDateString('pt-BR')]);
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='quiz_'+pname.replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();toast('CSV baixado!');
+}
+
+/* ══════════════════ PROJETOR ══════════════════ */
+let unsubProjetor=null;
+function startProjetor(){
+  if(!window.FB?.ok){
+    $i('rkl').innerHTML='<div class="rkempty">⚠ Firebase não configurado.<br><span style="font-size:11px">Configure as credenciais no arquivo HTML.</span></div>';
+    return;
+  }
+  if(unsubProjetor)return;
+  unsubProjetor=window.FB.escutar(renderRanking);
+}
+
+function renderRanking(arr){
+  arr=arr.sort((a,b)=>b.score-a.score);
+  $i('psTot').textContent=arr.length;
+  if(arr.length){
+    const avgAc=Math.round(arr.reduce((s,r)=>s+r.acertos,0)/arr.length);
+    $i('psAvg').textContent=avgAc+'/'+QS.length;
+    $i('psTop').textContent=arr[0].score+' pts';
+  }else{$i('psAvg').textContent='—';$i('psTop').textContent='—';}
+  const el=$i('rkl');
+  if(!arr.length){el.innerHTML='<div class="rkempty">Aguardando alunos...<br><span style="font-size:11px">Resultados aparecerão aqui em tempo real.</span></div>';return;}
+  const mx=arr[0].score||1,med=['🥇','🥈','🥉'];
+  el.innerHTML=arr.map((r,i)=>{
+    const p=Math.round((r.score/mx)*100),cls=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    return '<div class="rkrow '+cls+'">'+
+      '<div class="rkpos '+(i<3?'p'+(i+1):'')+'">'+( med[i]||(i+1))+'</div>'+
+      '<div class="rkav">'+inits(r.nome)+'</div>'+
+      '<div style="flex:1"><div class="rkname">'+r.nome+'</div><div class="rkdet">'+r.acertos+'/'+QS.length+' acertos · '+r.aproveitamento+'%</div></div>'+
+      '<div class="rkbar-w"><div class="rkbar" style="width:'+p+'%"></div></div>'+
+      '<div class="rksc">'+r.score+'</div></div>';
+  }).join('');
+}
+
+/* ══════════════════ EXPORT TURMA ══════════════════ */
+async function exportarCSV(){
+  if(!window.FB?.ok){toast('Firebase não configurado');return;}
+  const arr=await window.FB.exportar();
+  if(!arr.length){toast('Nenhum resultado ainda');return;}
+  const rows=[['Nome','Pontuação','Acertos','Erros+Timeout','Aproveitamento(%)','TempoMédio(s)','Rodada','Data']];
+  arr.sort((a,b)=>b.score-a.score).forEach(r=>rows.push([r.nome,r.score,r.acertos,r.erros,r.aproveitamento,r.tempoMedio,r.rodada,r.data]));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='quiz_turma_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();toast('CSV da turma exportado!');
+}
+
+async function limparTurma(){
+  if(!confirm('Limpar placar de toda a turma?'))return;
+  if(window.FB?.ok)await window.FB.limpar();
+  toast('Placar limpo!');
+}
+
+/* ══════════════════ RESTART ══════════════════ */
+function rs1(){startQ();}
+function rs2(){$i('ni').value='';$i('sb').disabled=true;show('start');}
+</script>
+</body>
+</html>
